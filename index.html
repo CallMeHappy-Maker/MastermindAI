@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastermind AI - Image Generation</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mastermind AI</h1>
+            <p>AI-Powered Image Generation</p>
+        </header>
+        <main>
+            <section class="input-section">
+                <label for="prompt">Enter your prompt:</label>
+                <textarea id="prompt" placeholder="Describe the image you want to generate..." rows="4"></textarea>
+                <button id="generateBtn" class="btn-primary">Generate Image</button>
+            </section>
+            <section class="output-section">
+                <div id="loading" class="loading" style="display:none;">Generating...</div>
+                <div id="imageContainer" class="image-container">
+                    <p>Generated images will appear here</p>
+                </div>
+            </section>
+        </main>
+        <footer>
+            <p>&copy; 2026 Mastermind AI. All rights reserved.</p>
+        </footer>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
