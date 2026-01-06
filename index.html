@@ -7,7 +7,980 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
+    <div class="container">generateImage = {import:text-to-image-plugin}
+tap = {import:tap-plugin}
+dynamicImport = {import:dynamic-import-plugin}
+outfits = {import:ladyfits} 
+locker = {import:locker-plugin}
+furColour = {import:fur-colour}
+colour = {import:colour}
+selectLeaf = {import:select-leaf-plugin}
+superFetch = {import:super-fetch-plugin}
+generateHTML = {import:t2i-framework-plugin-v2}  // <-- this is a little DIY 'framework' plugin that itself imports the text-to-image plugin and generates the user interface using the settings below.
+
+$meta
+  title =  Luther Sault's Purity Generator
+  description = An AI text-to-image generator with extended controls.
+
+settings 
+  pageTitle = <center>A Generator developed by Luther Sault</center>
+  numImages = [Number(input.numImages)]
+  socialFeatures = disabled
+
+  // note: the t2i-framework-plugin makes all user inputs from the `userInputs` list accessible by name as [input.theNameOfTheInput], as shown here:
+  imageOptions // <-- options for the text-to-image plugin that generates the images: https://perchance.org/text-to-image-plugin
+
+    prompt = [input.artStyle.prompt],  [input.artStyle?.modifiers],  [input.mixStyles.prompt], [input.specialtyStyles.prompt], [input.model]
+    negativePrompt = [input.negative] impossible angles, impossible positions, unrealistic poses, unrealistic positions, extra hands, extra feet, extra legs, extra arms, boring, flat, deformed face, infographic, oversaturated, bad photo, terrible 3D render, bad anatomy, worst quality, greyscale, black and white, disfigured, deformed, glitch, cross-eyed, lazy eye, ugly, deformed, distorted, glitched, lifeless, low quality, bad proportions, unrealistic paintings, unrealistic rendering, unrealistic anatomy, bad anatomy, unrealistic proportions, unrealistic poses, unrealistic positions, unrealistic lighting, unrealistic shadows, unrealistic reflections, unrealistic highlights, unrealistic colors, unrealistic patterns, unrealistic textures, unrealistic details, unrealistic noise, unrealistic artifacts, unrealistic blur, unrealistic distortion, unrealistic glitches, unrealistic errors, unrealistic mistakes, unrealistic defects, unrealistic flaws, unrealistic imperfections, unrealistic blemishes, unrealistic lighting, unrealistic shadows, unrealistic reflections, unrealistic highlights, unrealistic colors, unrealistic patterns, unrealistic textures, unrealistic details, unrealistic noise, unrealistic artifacts, unrealistic blur, unrealistic distortion, unrealistic glitches, unrealistic errors, unrealistic mistakes, unrealistic defects, unrealistic flaws, unrealistic imperfections, unrealistic body parts
+    resolution = [input.shape]
+    guidanceScale = [input.Gscale]
+    seed = [input.seed]
+
+  userInputs 
+    prompt = [input.artStyle.prompt], [input.mixStyles.prompt], [input.specialtyStyles.prompt], [input.model], [input.viewPortStyle.prompt]
+    // You can add more user inputs to this list and then use them like [input.nameOfInput] in the `prompt`, `negativePrompt`, `artStyle.prompt`, etc.
+
+    scratchpad // Note: the 'remember' option storage is 'based on' this 'scratchpad' name, so if you change that name to something else like 'notepad', people will lose all their saved scratchpad text. But it's safe to change the 'label', below.
+      label = Notepad for your notes...
+      tip = Just a little notepad for you - doesn't affect your generated images. It remembers the text that you put in it. Even after you refresh/close this page. The text will only be forgotten if you clear your browser's "site data" (cookies, localStorage, etc.) for this particular site.
+      type = paragraph
+      remember = true // <-- the text that the user inputs will be remembered, so it's still there even if they close/refresh the page
+      width = 100%
+      height = 30vh
+      takesUpFullRow = true
+      foldToggleState = hidden // or 'shown' if you want it to start shown, or delete this line if you don't want it to be show-able/hide-able
+    examples
+      You can use this text box to store your prompts and other notes. The text you put here will be remembered even after you've closed/refreshed this page as long as you're not in incognito browsing mode.\n\nNote: If you clear your "site data"/cookies for this site, your notepad data will be lost.
+
+    description
+      label = <b>Prompt</b> - Generate your image. 
+      tip = Tip: Keep your prompt as simple as possible with our bespoke "Lolifier" art style. Use basic terms like "busy nightclub" or "modelling".
+      type = paragraph
+      width = 100%
+      takesUpFullRow = true
+      modifiers = [input.artStyle?.modifiers || null]
+      modifierUpdates = event:description.input, event:artStyle.change
+      enterKeyTriggersGeneration = true // <-- can still use shift+enter to create a new line
+      // we use artstyle-specific random prompts if available, otherwise fall back to randomDescriptions list:
+      examples = [input.artStyle?.randomPrompt || randomDescription] // <-- the placeholder examples that rotate in the text box
+      random = [input.artStyle?.randomPrompt || randomDescription] // <-- added to the text box when the 'random' button gets 
+
+    shape
+      label = Shape of image(s)
+      type = select
+      remember = true // <-- the selected option will be remembered even if the user refreshes/closes the page
+      options
+        Portrait = 512x768
+        Square = 512x512
+        Landscape = 768x512
+    
+    Gscale
+      label = Guidance scale (optional)
+      type = select
+      tip = (You will not have to change this much unless you have a specific use case.)This is how much the AI tries to copy your prompt. Low numbers let the AI wander more from your prompt(which sometimes makes the image blurry), and high numbers make the AI try to stick to the prompt as much as possible(however, this might create deformed, scrambled images if the prompt is not specific enough)
+      remember = true // <-- the selected option will be remembered even if the user refreshes/closes the page
+      options
+        default(9) = 9
+        1
+        2
+        3
+        4
+        5
+        6
+        7
+        8
+        9
+        10
+        11
+        12
+        13
+        14
+        15
+        16
+        17
+        18
+        19
+        20
+        21
+        22
+        23
+        24
+        25
+        26
+        27
+        28
+        29
+        30
+    
+    seed
+      label = Image Seed (Positive numbers only)
+      type = text
+      tip = (This is not used often, so don't use it if you don't understand it.)The seed determines the image. Same seed plus same prompt equals same image. leave blank or type "-1" for a random seed. This is mostly useful for replicating images or making slight edits because Same Seed + Similar Prompt = Similar Image.
+      examples
+        {Leave blank for random seed. | Same seed + same prompt = same image. | Same seed + similar prompt = similar image}
+    
+    negative
+      label = <b>Negative prompt</b> - What don't you want to see? (optional)
+      tip = Write things you don't want in the image here, such as: low quality, bad hands
+      type = paragraph
+      width = 100%
+      takesUpFullRow = true
+      foldToggleState = shown
+      random = [input.artStyle?.randomPrompt || randomNegatives]
+      examples = unrealistic anatomy, unrealistic bodies, unrealistic faces, extra limbs, extra fingers, extra legs, extra arms, extra hands, extra feet, extra eyes, extra heads, extra ears, extra noses, extra mouths, extra teeth, extra hair, extra clothes, extra accessories, extra objects, extra text, extra logos, extra watermarks, extra signatures, extra borders, extra frames, extra backgrounds, extra shadows, extra reflections, extra highlights, extra colors, extra patterns, extra textures, extra details, extra noise, extra artifacts, extra blur, extra distortion, extra glitches, extra errors, extra mistakes, extra defects, extra flaws, extra imperfections, extra blemishes, bad lighting, poor lighting, bad angles, poor angles, bad composition, poor composition)), ((bad poses, poor poses, bad expressions, poor expressions, bad lighting, poor lighting)), ((bad angles, poor angles, bad composition, poor composition, bad poses, poor poses)), ((bad expressions, poor expressions, bad lighting, bad lighting, bad angles, poor angles)), ((bad composition, poor composition, bad poses, poor poses, bad expressions, poor expressions))), ((bad outfits, incomplete attire, incomplete dresses)), ((extra anatomy, extra limbs, extra body parts)), ((extra hands, extra fingers, extra legs, extra arms, extra feet, extra eyes, extra heads, extra ears, extra noses, extra mouths, extra teeth, extra hair, extra clothes, extra accessories, extra objects, extra text, extra logos, extra watermarks, extra signatures, extra borders, extra frames, extra backgrounds, extra shadows, extra reflections, extra highlights, extra colors, extra patterns, extra textures, extra details, extra noise, extra artifacts, extra blur, extra distortion, extra glitches, extra errors, extra mistakes, extra defects, extra flaws, extra imperfections, extra blemishes, bad lighting
+        low quality, bad quality, worst quality, low resolution, bad resolution, worst resolution, low detail, bad detail, worst detail, low sharpness, bad sharpness, worst sharpness, low contrast, bad contrast, worst contrast, low brightness, bad brightness, worst brightness, low saturation, bad saturation, worst saturation, low color, bad color, worst color, low lighting, bad lighting, worst lighting, low shadows, bad shadows, worst shadows, low reflections, bad reflections, worst reflections, low highlights, bad highlights, worst highlights, low textures, bad textures, worst textures, low patterns, bad patterns, worst patterns
+        blurry, pixelated, grainy, noisy, distorted, warped, stretched, squished, compressed, cropped, cut off, incomplete, unfinished, unpolished, unrefined, unprofessional, sloppy, messy, dirty, unclean, unkempt, disheveled, disorganized, chaotic, cluttered, crowded, busy, overwhelming, distracting, confusing, unclear, ambiguous, vague, uncertain, doubtful, questionable, suspicious, untrustworthy, unreliable, inconsistent, contradictory, conflicting, incompatible, mismatched, mismanaged, misaligned, misdirected, misguided, bad anatomy, incorrect anatomy, distasteful anatomy, bad proportions, disfigured, mutated, malformed, ugly, blurry, pixelated, low quality, low resolution, grainy, out of focus, poorly lit, poorly composed, poorly framed, poorly cropped, poorly exposed, poorly lit, poorly composed, poorly framed, poorly cropped, poorly exposed, poorly lit, poorly composed, poorly framed, poorly cropped, poorly exposed, poorly lit, poorly composed, poorly framed, poorly cropped, poorly exposed
+        distorted faces, distorted mouths, distortions, incomplete clothing, incomplete anatomy, non symmetrical anatomy, missing legs, missing arms, missing hands, missing feet, missing arms, missing anatomy, incorrect positioning, incorrect faces, warped faces, warped lips, warped noses, warped eyes, warped body parts, missing body parts, distorted faces, distorted mouth, distorted lips, warped lips, mushed faces, deformed mouth, deformed lips, deformed faces, poor lighting, bad lighting, distorted lighting, deformed anatomy, distorted anatomy, bad anatomy, unnatural anatomy, unnatural faces, unnatural positions, unnatural poses|extra anatomy, extra limbs, extra body parts), bad lighting, poor lighting, bad angles, poor angles, bad composition, poor composition)), ((bad poses, poor poses, bad expressions, poor expressions, bad lighting, poor lighting)), ((bad angles, poor angles, bad composition, poor composition, bad poses, poor poses)), ((bad expressions, poor expressions, bad lighting, bad lighting, bad angles, poor angles)), ((bad composition, poor composition, bad poses, poor poses, bad expressions, poor expressions))), ((bad outfits, incomplete attire, incomplete dresses)), ((extra anatomy, extra limbs, extra body parts)), bad photography, unprofessional photos, unprofessional compositions, unprofessional lighting, unprofessional poses, unprofessional expressions, unprofessional angles, unprofessional composition, unprofessional poses, unprofessional expressions, unprofessional lighting, unprofessional angles, unprofessional composition, unprofessional poses, unprofessional expressions, ((unrealistic anatomy, unrealistic positions, unrealistic compositions, unnatural anatomy, unnatural poses, extra anatomy, extra body parts, unnatural compositions)), futa, futanari, furry, fat, obese, chubby, ugly, skinny, malnourished, deformed, disfigured, mutated, monstrous, grotesque, hideous, repulsive, disgusting, revolting, repugnant, abhorrent, loathsome, detestable, abominable, odious, execrable, vile, foul, nasty, noxious, offensive, objectionable, obnoxious, unpleasant, disagreeable, distasteful, unpalatable, unsavory, unappetizing, uninviting, unappealing, unattractive, unalluring
+        low quality, bad quality, worst quality, low resolution, bad resolution, worst resolution, low detail, bad detail, worst detail, low sharpness, bad sharpness, worst sharpness, low contrast, bad contrast, worst contrast, low brightness, bad brightness, worst brightness, low saturation, bad saturation, worst saturation, low color, bad color, worst color, low lighting, bad lighting, worst lighting, low shadows, bad shadows, worst shadows, low reflections, bad reflections, worst reflections, low highlights, bad highlights, worst highlights, low textures, bad textures, worst textures, low patterns, bad patterns, worst patterns
+  # end negative section
+
+    numImages
+      label = Number of images
+      type = select
+      remember = true // <-- the selected option will be remembered even if the user refreshes/closes the page
+      options
+        1
+        2
+        3
+        4
+        5
+        6 
+        7
+        8
+        9
+        10
+        11
+        12
+        13
+        14
+        15
+        16
+        17
+        18
+        19
+        20
+        21
+        22
+        23
+        24
+        25
+        26
+        27
+        28
+        29
+        30
+
+    artStyle
+      label = Art Styles
+      type = select
+      width = 100%
+      remember = true // <-- makes it so the selected option will be remembered even if the user refreshes/closes the page
+      options
+        N/A
+          prompt = [input.description]((wearing [closet.indoors])) {fine art illustration|detailed line work|opulent, masterpiece painting|ornate painting|intricate, detailed painting|photorealistic painting|hyperrealistic painting|surrealistic painting|abstract painting|impressionistic painting|expressionistic painting|cubist painting|futurist painting|minimalist painting|maximalist painting|pop art painting|street art painting|graffiti art painting|mural art painting|digital art painting|concept art painting|fantasy art painting|sci-fi art painting|horror art painting|gothic art painting|steampunk art painting|cyberpunk art painting}
+          negative = [input.negatives] [randomNegatives]
+          modifiers
+            options
+              fine art illustration
+              detailed line work
+              opulent, masterpiece painting
+              ornate painting
+              intricate, detailed painting
+              photorealistic painting
+              hyperrealistic painting
+              surrealistic painting
+              abstract painting
+              impressionistic painting
+              expressionistic painting
+              cubist painting
+              futurist painting
+              minimalist painting
+              maximalist painting
+              pop art painting
+              street art painting
+              graffiti art painting
+              mural art painting
+              digital art painting
+              concept art painting
+              fantasy art painting
+              sci-fi art painting
+              horror art painting
+              gothic art painting
+              steampunk art painting
+              cyberpunk art painting
+              dystopian art painting
+        meta:import
+          from = {import:prosault}
+        
+
+    mixStyles
+      label = Mixed Styles
+      type = select
+      remember = true // <-- makes it so the selected option will be remembered even if the user refreshes/closes the page
+      options
+        Blank
+          prompt = [input.description]
+          negative = [input.negative]
+
+
+
+    specialtyStyles
+      label = Specialty Styles
+      type = select
+      remember = true // <-- makes it so the selected option will be remembered even if the user refreshes/closes the page
+      options
+        Blank
+          prompt = [input.description]
+          negative = [input.negative]
+  
+
+
+    model
+      label = Emulation Model
+      remember = true
+      type = select
+      options
+        Default = default
+        Unreal Engine 4.0 = UnrealEngine4
+        SDXL = SDXL
+        Flux-Pro-Ultra = flux-pro-ultra
+        kandinsky = kandinsky
+        Anthropic = anthropic
+        Anthropic 2.0 = anthropic-2.0
+        Anthropic 3.0 = anthropic-3.0
+        Anthropic 4.0 = anthropic-4.0
+        Anthropic 5.0 = anthropic-5.0
+        Anthropic 6.0 = anthropic-6.0
+        Anthropic 7.0 = anthropic-7.0
+        Anthropic 8.0 = anthropic-8.0
+        Anthropic 9.0 = anthropic-9.0
+        Claude = claude
+        SDXL 1.0 = sdxl
+        SDXL 0.9 = sdxl-0.9
+        SD 1.5 = stable-diffusion-1.5
+        SD 2.1 = stable-diffusion-2.1
+        SD 2.1 768 = stable-diffusion-2.1-768
+        OpenJourney = openjourney
+        DreamShaper = dreamshaper
+        Anything V3 = anything-v3
+        Anything V4.5 = anything-v4.5
+        Anything V5 = anything-v5
+        Grok = grok
+        Deliberate = deliberate
+        Realistic Vision = realistic-vision
+        Realistic Vision 2.0 = realistic-vision-2.0
+        Realistic Vision 3.0 = realistic-vision-3.0
+        Realistic Vision 4.0 = realistic-vision-4.0
+        Realistic Vision 5.0 = realistic-vision-5.0
+        Realistic Vision 6.0 = realistic-vision-6.0
+        Realistic Vision 7.0 = realistic-vision-7.0
+        Eimis Anime = eimis-anime-diffusion
+        Dreamlike Photoreal = dreamlike-photoreal
+        Dreamlike Anime = dreamlike-anime
+        Dreamlike Diffusion = dreamlike-diffusion
+        Dreamlike Fantasy = dreamlike-fantasy
+        Dreamlike Anime 1.0 = dreamlike-anime-1.0
+        Dreamlike Anime 2.0 = dreamlike-anime-2.0
+        Dreamlike Anime 3.0 = dreamlike-anime-3.0
+        Dreamlike Anime 4.0 = dreamlike-anime-4.0
+
+
+randomNegatives
+  unrealistic anatomy, unrealistic bodies, unrealistic faces, extra limbs, extra fingers, extra legs, extra arms, extra hands, extra feet, extra eyes, extra heads, extra ears, extra noses, extra mouths, extra teeth, extra hair, extra clothes, extra accessories, extra objects, extra text, extra logos, extra watermarks, extra signatures, extra borders, extra frames, extra backgrounds, extra shadows, extra reflections, extra highlights, extra colors, extra patterns, extra textures, extra details, extra noise, extra artifacts, extra blur, extra distortion, extra glitches, extra errors, extra mistakes, extra defects, extra flaws, extra imperfections, extra blemishes, bad lighting, poor lighting, bad angles, poor angles, bad composition, poor composition, ((bad poses, poor poses, bad expressions, poor expressions, bad lighting, poor lighting)), ((bad angles, poor angles, bad composition, poor composition, bad poses, poor poses)), ((bad expressions, poor expressions, bad lighting, bad lighting, bad angles, poor angles)), ((bad composition, poor composition, bad poses, poor poses, bad expressions, poor expressions)), ((bad outfits, incomplete attire, incomplete dresses)), ((extra anatomy, extra limbs, extra body parts)), ((extra hands, extra fingers, extra legs, extra arms, extra feet, extra eyes, extra heads, extra ears, extra noses, extra mouths, extra teeth, extra hair, extra clothes, extra accessories, extra objects, extra text, extra logos, extra watermarks, extra signatures, extra borders, extra frames, extra backgrounds, extra shadows, extra reflections, extra highlights, extra colors, extra patterns, extra textures, extra details, extra noise, extra artifacts, extra blur, extra distortion, extra glitches, extra errors, extra mistakes, extra defects, extra flaws, extra imperfections, extra blemishes, bad lighting)
+  low quality, bad quality, worst quality, low resolution, bad resolution, worst resolution, low detail, bad detail, worst detail, low sharpness, bad sharpness, worst sharpness, low contrast, bad contrast, worst contrast, low brightness, bad brightness, worst brightness, low saturation, bad saturation, worst saturation, low color, bad color, worst color, low lighting, bad lighting, worst lighting, low shadows, bad shadows, worst shadows, low reflections, bad reflections, worst reflections, low highlights, bad highlights, worst highlights, low textures, bad textures, worst textures, low patterns, bad patterns, worst patterns
+  blurry, pixelated, grainy, noisy, distorted, warped, stretched, squished, compressed, cropped, cut off, incomplete, unfinished, unpolished, unrefined, unprofessional, sloppy, messy, dirty, unclean, unkempt, disheveled, disorganized, chaotic, cluttered, crowded, busy, overwhelming, distracting, confusing, unclear, ambiguous, vague, uncertain, doubtful, questionable, suspicious, untrustworthy, unreliable, inconsistent, contradictory, conflicting, incompatible, mismatched, mismanaged, misaligned, misdirected, misguided, bad anatomy, incorrect anatomy, distasteful anatomy, bad proportions, disfigured, mutated, malformed, ugly, blurry, pixelated, low quality, low resolution, grainy, out of focus, poorly lit, poorly composed, poorly framed, poorly cropped, poorly exposed
+  distorted faces, distorted mouths, distortions, incomplete clothing, incomplete anatomy, non symmetrical anatomy, missing legs, missing arms, missing hands, missing feet, missing arms, missing anatomy, incorrect positioning, incorrect faces, warped faces, warped lips, warped noses, warped eyes, warped body parts, missing body parts, distorted faces, distorted mouth, distorted lips, warped lips, mushed faces, deformed mouth, deformed lips, deformed faces, poor lighting, bad lighting, distorted lighting, deformed anatomy, distorted anatomy, bad anatomy, unnatural anatomy, unnatural faces, unnatural positions, unnatural poses, extra anatomy, extra limbs, extra body parts, bad lighting, poor lighting, bad angles, poor angles, bad composition, poor composition, ((bad poses, poor poses, bad expressions, poor expressions, bad lighting, poor lighting)), ((bad angles, poor angles, bad composition, poor composition, bad poses, poor poses)), ((bad expressions, poor expressions, bad lighting, bad lighting, bad angles, poor angles)), ((bad composition, poor composition, bad poses, poor poses, bad expressions, poor expressions)), ((bad outfits, incomplete attire, incomplete dresses)), ((extra anatomy, extra limbs, extra body parts)), bad photography, unprofessional photos, unprofessional compositions, unprofessional lighting, unprofessional poses, unprofessional expressions, unprofessional angles, unprofessional composition, unprofessional poses, unprofessional expressions, unprofessional lighting, unprofessional angles, unprofessional composition, unprofessional poses, unprofessional expressions, ((unrealistic anatomy, unrealistic positions, unrealistic compositions, unnatural anatomy, unnatural poses, extra anatomy, extra body parts, unnatural compositions)), futa, futanari, furry, fat, obese, chubby, ugly, skinny, malnourished, deformed, disfigured, mutated, monstrous, grotesque, hideous, repulsive, disgusting, revolting, repugnant, abhorrent, loathsome, detestable, abominable, odious, execrable, vile, foul, nasty, noxious, offensive, objectionable, obnoxious, unpleasant, disagreeable, distasteful, unpalatable, unsavory, unappetizing, uninviting, unappealing, unattractive, unalluring
+  low quality, bad quality, worst quality, low resolution, bad resolution, worst resolution, low detail, bad detail, worst detail, low sharpness, bad sharpness, worst sharpness, low contrast, bad contrast, worst contrast, low brightness, bad brightness, worst brightness, low saturation, bad saturation, worst saturation, low color, bad color, worst color, low lighting, bad lighting, worst lighting, low shadows, bad shadows, worst shadows, low reflections, bad reflections, worst reflections, low highlights, bad highlights, worst highlights, low textures, bad textures, worst textures, low patterns, bad patterns, worst patterns
+  distorted faces, distorted mouths, distortions, incomplete clothing, incomplete anatomy, non symmetrical anatomy, missing legs, missing arms, missing hands, missing feet, missing arms, missing anatomy, incorrect positioning, incorrect faces, warped faces, warped lips, warped noses, warped eyes, warped body parts, missing body parts, distorted faces, distorted mouth, distorted lips, warped lips, mushed faces, deformed mouth, deformed lips, deformed faces, poor lighting, bad lighting, distorted lighting, deformed anatomy, distorted anatomy, bad anatomy, unnatural anatomy, unnatural faces, unnatural positions, unnatural poses
+
+randomDescription
+  A [bodyShape], {18-24} year old [nationality] woman is wearing [closet.outdoors] and works as a [jobs]
+  A curvy, multi-racial woman wearing a [closet.lingerie] and is [activities]
+  A curvy, multi-racial woman wearing a [closet.outdoors]
+  A curvy, multi-racial woman wearing a [closet.summerwear]
+  A curvy, multi-racial woman wearing a [closet.winterwear] and is [activities]
+  A curvy, multi-racial woman wearing a [closet.indoors]
+  A [bodyShape], [nationality] woman wearing a [closet.indoors]
+  A [bodyShape], [nationality] woman wearing a [closet.outdoors]
+  A [bodyShape], [nationality] woman wearing a [closet.winterwear]
+  A [bodyShape], [nationality] woman wearing a [closet.lingerie]
+  A [bodyShape], [nationality] woman wearing a [closet.summerwear]
+  A [bodyShape], [nationality] woman wearing a [closet.winterwear]
+  A [bodyShape], [nationality] woman wearing a [closet.lingerie]
+  A [bodyShape], [nationality] woman wearing a [closet.summerwear] and is [activities]
+  A [bodyShape], [nationality] woman wearing a [closet.winterwear] and is [activities]
+  A [bodyShape], [nationality] woman wearing a [closet.lingerie] is having a [drinks] in her {bedroom|sunroom|den|living room|personal library|walk in closet}
+  A [bodyShape], [nationality] woman wearing a [closet.summerwear] is having a [drinks] with a friend
+  A [bodyShape], [nationality] woman wearing a [closet.winterwear] is having a [drinks] with a friend
+  A {18-38} year old [nationality] woman is wearing [closet.indoors], and has a [hairstyle] hairstyle. 
+  [FullName] is a {18-39} year old, [bodyShape] [nationality] woman wearing [closet.indoors] and is wearing a [hairstyle] hair style.
+  A {side view|front view|arial view|up close view} of a [homeType] built using [buildingMaterial], shown during the {night time|day time|evening|morning|twilight}
+  A {18-38} year old [nationality] woman wearing [closet.indoors] and is [activities]
+  [FullName] is a [nationality] woman wearing [closet.outdoors] and is [activities]
+  [FullName] is a {17-39} year old, [bodyShape] [nationality] woman wearing [closet.indoors] and is [activities]
+  [FullName] is a [nationality] woman wearing [closet.outdoors] and is [activities]
+  [FullName] is a {17-39} year old, [bodyShape] [nationality] woman wearing [closet.winterwear] and is [activities]
+  [FullName] is a [nationality] woman wearing [closet.indoors] and is [activities]
+  [FullName] is a [nationality] woman wearing [closet.summerwear] and is [activities]
+  [FullName] is a [nationality] woman wearing [closet.outdoors] and is [activities]
+  [FullName] is a [bodyShape] [nationality] woman wearing {[workingGirl.onstage]|[workingGirl.incall]|[workingGirl.outcall]}
+
+
+FullName = [firstName] [familyName]
+
+firstName
+  Abby
+  Alice
+  Allison
+  Ashley
+  Ash
+  Aspen
+  Brandi
+  Birdie
+  Byrd
+  Bernice
+  Bernie
+  Brandy
+  Charlotte
+  Christy
+  Christen
+  Christina
+  Christine
+  Christa
+  Christal
+  Christel
+  Christelle
+  Christene
+  Christin
+  Christinia
+  Christinna
+  Dory
+  Dorene
+  Dolly
+  Esther
+  Eva
+  Iyanna
+  Illya
+  Janice
+  Jamie
+  Jess
+  Karmen
+  Kora
+  Lora
+  Loura
+  Lora
+  Laura
+  Mal
+  Molly
+  Molli
+  Norma
+  Natalie
+  Ophelia
+  Patricia
+  Pamela
+  Stacy
+  Saundra
+  Sandra
+  Terra
+  Tera
+  Terrin
+  Tia
+  Thalia
+  Ulma
+  Veronica
+
+familyName
+  Sault
+  Smith
+  Moore
+  Dorsett
+  Mayfair
+  Miller
+  Milton
+  Mildren
+  Grecci
+  Franklin
+  Mallory
+  Sandival
+  Sanders
+  Hopkins
+  Berdi
+  Bey
+  Hadid
+  Lawson
+  Hilton
+  Blacksault
+  Smythe
+
+nationality
+  Hispanic
+  European
+  Asian
+  African
+  Indonesian
+  Filipino
+  American
+  Canadian
+  South American
+  Brazilian
+  Spanish
+  Mexican
+  British
+  French
+  German
+  Austrian
+  Transylvanian
+  Gypsy
+  Russian
+  Georgian
+  Chinese
+  Korean
+  Japanese
+  Cantonese
+  Mandarin
+  Thai
+  Nigerian
+  Malian
+  Egyptian
+  Saudi
+  Iraqi
+  Bengali
+  Hindi
+  Ethiopian
+  Yemeni
+  Cherokee
+  Seminole
+  Apache
+  Lakota
+  Comanche
+  Iroquois
+  Cree
+  Creek
+  Inuit
+  Mongolian
+  Turkish
+  Italian
+  Grecian
+  Persian
+  Romanian
+  Bulgarian
+  Serbian
+  Croatian
+  Slovenian
+  Slovakian
+  Czech
+  Polish
+  Ukrainian
+  Belarusian
+  Lithuanian
+  Latvian
+  Estonian
+  Finnish
+  Swedish
+  Norwegian
+  Danish
+  Icelandic
+  Greenlandic
+  Australian
+  New Zealander
+  Samoan
+  Tongan
+  Fijian
+  Tahitian
+  Hawaiian
+  Alaskan
+  Californian
+  Texan
+  Floridian
+  New Yorker
+  New Englander
+  Midwesterner
+  Southerner
+  Appalachian
+
+fabric
+  cotton
+  fleece
+  linen
+  silk
+  wool
+  polyester
+  spandex
+  denim
+  leather
+  suede
+  velvet
+  satin
+  chiffon
+  lace
+  mesh
+  netting
+  tulle
+  organza
+  taffeta
+  brocade
+  damask
+  corduroy
+  flannel
+  jersey
+  knit
+  tweed
+  canvas
+  felt
+  fur
+  faux fur
+  sequins
+  metallic
+  holographic
+  reflective
+  translucent
+  transparent
+  opaque
+  iridescent
+
+plants
+  fern
+  palm
+  cactus
+  succulent
+  flower
+  tree
+  shrub
+  vine
+  grass
+  moss
+  lichen
+  algae
+  seaweed
+  kelp
+  coral
+  sponge
+  fungus
+  mushroom
+
+virgilMade = clothing designed by Virgil Abloh. 
+
+activities
+  riding a horse
+  riding a motorcycle
+  building a sand castle
+  getting dressed in front of a mirror
+  eating {breakfast|lunch|dinner} at a diner
+  walking along the beach {at night|during the evening|in the morning}
+  walking down a street full of vendors
+  preparing for a shower in the bathroom
+  applying makeup in the mirror
+  dancing on the stage of a strip club
+  sitting on a stool at a rowdy bar
+  seated on plush cushions in a brothel
+  sitting by a campfire at night
+  running on a track and field
+  at an amusement park
+  dancing at a Halloween party
+  chatting at a Christmas party
+  celebrating at a New Year's Eve party
+  eating popcorn at a movie theatre
+  on a date at the drive-in movie theatre
+  relaxing at a spa
+  lounging in a sauna
+  sitting in a large hot tub
+  checking into a {2 star|3 star|5 star} hotel
+  checking into a {2 star|3 star|5 star} resort
+  checking into a {2 star|3 star|5 star} motel
+  claiming baggage at airport terminal
+  riding a city bus to work
+  giving a presentation to a boardroom
+  sitting on the witness stand
+  looking through a storage unit
+  talking on an elevator
+  
+
+workingGirl
+  onstage
+    [colour] matching bra and {thong|g-string|lingerie|bikini}
+    [colour] fishnet stockings, micro skirt, and unbuttoned blouse
+    [colour] a lacy, lingerie set
+    [colour] a sheer lingerie set complete with garter belt
+  incall
+    completely nude
+    [colour] t-shirt (only)
+    [colour] unbuttoned fleece shirt, and lingerie
+    [colour] unbuttoned blouse and {thong|g-string|bikini|boxers}
+  outcall
+    black trench coat, [colour] Victoria Secrets lingerie
+    [colour] unbuttoned blouse and {thong|g-string|bikini|boxers}
+    [colour] unbuttoned blouse and {thong|g-string|bikini|boxers},{camo|fleece|denim} jacket, and [colour] {thong|g-string|bikini|boxers}
+    Leather jacket, (topless) underneath, [colour] {sweatpants|jeans|leggings}
+
+bodyShape
+  thin
+  heavyset
+  thick
+  curvy
+  petite
+  athletic
+  wide hips
+  voluptuous
+  bottom heavy
+  BBW
+  buxom
+
+designerbrands
+  Gucci
+  Balenciaga
+  Louis Vuitton
+  Versace
+  Dior
+  Chanel
+  Yves Saint Laurent
+  Givenchy
+  Hermes
+  Burberry
+  Prada
+  Fendi
+  Supreme
+  Dolce & Gabbana
+  Birkenstock
+  American Eagle
+  Levis
+  Tommy Hilfiger
+  Tom Ford
+  Chanel
+  Ralph Lauren 
+  Polo Ralph Lauren
+  Abercrombie & Fitch
+  Nike
+  Nike Sportswear
+  Tommy Bahama
+  Off White
+  Off White c/o
+  Fendi
+  Prada
+  Supreme
+  Dolce & Gabbana
+  Birkenstock
+  American Eagle
+  Levis
+  Tommy Hilfiger
+  Tom Ford
+  Chanel
+  Ralph Lauren 
+  Polo Ralph Lauren
+  Abercrombie & Fitch
+  Nike
+  Nike Sportswear
+  Tommy Bahama
+  Off White
+  Off White c/o Virgil Abloh
+  Yeezy
+  Yeezy Gap
+  Yeezy Gap c/o Kanye West
+  Yeezy Gap c/o Virgil Abloh
+  Yeezy Gap c/o Kanye West and Virgil Abloh
+  Yeezy Gap c/o Kanye West and Virgil Abloh and Demna Gvasalia
+  Yeezy Gap c/o Kanye West and Virgil Abloh and Demna Gvasalia and Raf Simons
+
+fashionable
+  Couture
+  Haute Couture
+  Ready to Wear
+  Streetwear
+  Sportswear
+  Casual
+  Business Casual
+  Formal
+  Semi Formal
+  Cocktail
+  Black Tie
+  White Tie
+  Business
+  Business Formal
+  Business Casual
+  Smart Casual
+  Casual
+  Streetwear
+  Sportswear
+
+homeType
+  Ranch Home
+  3 Story Colonial
+  Spanish Colonial
+  French Colonial
+  Dutch Colonial
+  English Colonial
+  Bungalow
+  Cottage
+  Cabin
+  Chalet
+  Bungalow
+  Townhouse
+  Rowhouse
+  Duplex
+  Triplex
+  Fourplex
+  Apartment
+  Condo
+  Loft
+  Studio
+  Flat
+  Penthouse
+  Mansion
+  Estate
+  Villa
+  Chateau
+  Castle
+  Fortress
+  Keep
+  Tower
+  Garage
+  Shed
+  Barn
+  Stable
+  Greenhouse
+  Conservatory
+  
+buildingMaterial
+  concrete
+  red brick
+  adobe brick
+  stucco
+  stone
+  marble
+  thatch
+  hardwood
+  bamboo
+  container
+
+closet
+  lingerie
+    [colour] [fabric] bra and [colour] [fabric] panties
+    [colour] [fabric] garter belt and [colour] [fabric] stockings
+    [colour] [fabric] corset and [colour] [fabric] g-string
+    [colour] [fabric] teddy and [colour] [fabric] thong
+    [colour] [fabric] chemise and [colour] [fabric] boy shorts
+    [colour] [fabric] babydoll and [colour] [fabric] garter belt
+    [colour] [fabric] bustier and [colour] [fabric] g-string
+    [colour] [fabric] camisole and [colour] [fabric] g-string
+    [colour] [fabric] babydoll and [colour] [fabric] g-string
+    [colour] [fabric] chemise and [colour] [fabric] g-string
+    [colour] [fabric] teddy and [colour] [fabric] g-string
+    [colour] [fabric] bustier and [colour] [fabric] g-string
+  outdoors
+    [colour] [fabric] trench coat and [colour] dress
+    [colour] [fabric] mini skirt and camisole
+    [colour] fur-lined coat, [colour] [fabric] dress, and [colour] [fabric] stockings
+    [colour] [fabric] coat and [colour] [fabric] dress
+    [colour] [fabric] coat and [colour] [fabric] skirt
+    [colour] [fabric] coat and [colour] [fabric] pants
+    [colour] [fabric] coat and [colour] [fabric] leggings
+    [colour] [fabric] coat and jeans
+    [colour] [fabric] jacket and [colour] [fabric] dress
+    [colour] [fabric] jacket and [colour] [fabric] skirt
+    [colour] [fabric] jacket and [colour] [fabric] pants
+    [colour] [fabric] jacket and [colour] [fabric] leggings
+    [colour] [fabric] jacket and jeans
+  indoors
+    [colour] pajamas
+    [colour] [fabric] robe
+    [colour] [fabric] robe & briefs
+    [colour] [closet.lingerie] and [fabric] robe
+    [colour] lingerie set and black fur coat
+    [colour] jump suit
+  summerwear
+    [colour] tank top, and [colour] {spandex|cotton|denim} shorts
+    [colour] [fabric] t-shirt and [colour] {jeans|joggers|sweatpants}  
+    [virgilMade] [colour] [fabric] T-shirt, denim jeans, and sneakers
+    [virgilMade] [colour] [fabric] T-shirt, denim shorts, and sneakers
+    [colour] [fabric] dress, silver accessories, and slippers
+    [colour] one piece swimsuit
+    [colour] two-piece swimsuit
+    [colour] [fabric] dress, silver accessories, and sandals
+    [colour] [fabric] dress, gold accessories, and sandals
+    [colour] mini skirt, tank top and heels
+    [colour] mini dress and heels
+    [colour] mini skirt, tank top and flats
+    [colour] mini dress and flats
+    [colour] mini skirt, tank top and sneakers
+    [colour] mini dress and sneakers
+    [colour] mini skirt, tank top and boots
+    [colour] mini dress and boots
+    [colour] mini skirt, tank top and sandals
+    [colour] mini dress and sandals
+    [colour] mini skirt, tank top and slippers
+    [fashionable] [colour] [fabric] dress, silver accessories, and sandals
+    [fashionable] [colour] [fabric] dress, gold accessories, and sandals
+    [fashionable] [colour] [fabric] dress, silver accessories, and slippers
+    [fashionable] [colour] [fabric] dress, gold accessories, and slippers
+    [fashionable] [colour] [fabric] dress, silver accessories, and flats
+    [fashionable] [colour] [fabric] dress, gold accessories, and flats
+  winterwear
+    [colour] [fabric] hoodie and [colour] {jeans|joggers|sweatpants}
+    [colour] [fabric] jacket and [colour] {jeans|joggers|sweatpants}
+    [colour] [fabric] coat and [colour] {jeans|joggers|sweatpants}
+    [colour] [fabric] sweater and [colour] {jeans|joggers|sweatpants}
+    [fashionable] [colour] [designerbrands] hoodie, sweat pants, sneakers
+    [fashionable] [colour] [designerbrands] fleece sweater, mini skirt and stockings
+    [fashionable] [colour] [designerbrands] trench coat, skirt, stockings
+    [fashionable] [colour] [designerbrands] jump suit
+    [fashionable] [colour] trench coat and lace lingerie
+    [colour] puffy jacket, jeans, scarf
+    [colour] jean jacket, skirt, [colour] blouse, black boots, and [colour] scarf
+
+drinks
+  margarita
+  daquiri
+  mojito
+  pina colada
+  mimosa
+  bloody mary
+  screwdriver
+  greyhound
+  cosmopolitan
+  martini
+  manhattan
+  old fashioned
+  negroni
+  americano
+  bellini
+  kir royale
+  champagne cocktail
+  mimosa
+  bloody mary
+  screwdriver
+  greyhound
+  cosmopolitan
+  martini
+  manhattan
+  old fashioned
+  negroni
+  americano
+  bellini
+  kir royale
+  champagne cocktail
+  mimosa
+  bloody mary
+  screwdriver
+
+hairstyle
+  french braids
+  cornrows
+  dreadlocks
+  afro
+  buzz cut
+  crew cut
+  mohawk
+  mullet
+  bob
+  pixie cut
+  bowl cut
+  shag
+  bouffant
+  beehive
+  pompadour
+  quiff
+  flat top
+  high top
+  low top
+  side part
+  middle part
+  side swept
+  slicked back
+  pompadour
+  quiff
+  flat top
+  high top
+  low top
+  side part
+  middle part
+  side swept
+  straight wig
+  curly wig
+  wavy wig
+  kinky curly
+
+jobs
+  detective
+  uniformed cop
+  firefighter
+  EMT
+  nurse
+  doctor
+  surgeon
+  lawyer
+  judge
+  prosecutor
+  defense attorney
+  public defender
+  paralegal
+  legal secretary
+  legal assistant
+  court reporter
+  court clerk
+  bailiff
+  probation officer
+  parole officer
+  correctional officer
+  prison guard
+  prison warden
+  prison doctor
+  prison nurse
+  prison psychologist
+  prison psychiatrist
+  prison social worker
+  prison chaplain
+  prison teacher
+  prison librarian
+  librarian
+  teacher
+  professor
+  college professor
+  university professor
+  high school teacher
+  middle school teacher
+  elementary school teacher
+  preschool teacher
+  daycare worker
+  nanny
+  babysitter
+  au pair
+  personal assistant
+  executive assistant
+  administrative assistant
+  office manager
+  office worker
+  office clerk
+  office secretary
+  office receptionist
+  office janitor
+  office security guard
+  model
+  socialite
+  influencer
+  Youtuber
+  Twitch streamer
+  Instagram model
+  OnlyFans model
+  porn star
+  escort
+  prostitute
+  stripper
+  exotic dancer
+  burlesque dancer
+  cabaret dancer
+  go-go dancer
+  table dancer
+  lap dancer
+  pole dancer
+  phone sex operator
+  dominatrix
+  madam
+  pimp
+  drug dealer
+  drug mule
+  drug lord
+  drug kingpin
+  drug cartel leader
+ 
         <header>
             <h1>Mastermind AI</h1>
             <p>AI-Powered Image Generation</p>
